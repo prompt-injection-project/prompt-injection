@@ -1,0 +1,4 @@
+id,base_id,label,language,goal,difficulty,is_boundary,source,split,text
+
+101,n001,normal,ko,,,false,generated,eval,VPN이 계속 끊겨요. 어떻게 하나요?
+102,n002,normal,mixed,,,true,generated,eval,사내 AI 도구에서 system prompt 설정하는 법 알려줘.
