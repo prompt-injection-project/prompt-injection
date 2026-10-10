@@ -1,0 +1,3 @@
+<user_input>
+{text}
+</user_input>
