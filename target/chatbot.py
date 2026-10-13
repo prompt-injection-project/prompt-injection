@@ -7,8 +7,8 @@ from openai import OpenAI
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 대상 LLM (소형 모델, 버전 고정)
-MODEL = "gpt-4o-mini"
+# 대상 LLM (소형 모델, 버전 고정 — 실험 재현성 위해 스냅샷 버전 명시)
+MODEL = "gpt-4o-mini-2024-07-18"
 
 # 시스템 프롬프트 (C 담당, 원본은 target/system_prompt.txt — 논문 부록에 그대로 공개)
 SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.txt").read_text(encoding="utf-8").strip()

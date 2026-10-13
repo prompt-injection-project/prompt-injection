@@ -1,4 +1,5 @@
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 # 앞서 만든 세 방어를 가져옴
 from defenses import d1_rule
@@ -9,11 +10,19 @@ from defenses import d3_llm
 HIGH = 0.7   # 이 이상이면 바로 차단
 LOW = 0.3    # 이 이하면 바로 통과
 
+# D3(외부 API)가 느릴 때 서비스가 밀리지 않도록 3초 폴백
+D3_TIMEOUT = 3.0          # 초. 이 시간 넘으면 D3 포기하고 D2 점수로 결정
+FALLBACK_THRESHOLD = 0.5  # 폴백 시 D2 점수가 이 이상이면 차단 (애매 구간 중간값)
+
+# D3 호출을 타임아웃 걸어 돌리기 위한 스레드 풀 (모듈 전역에서 재사용)
+_executor = ThreadPoolExecutor(max_workers=4)
+
 
 def detect(text):
     """
-    단계별 방어: D1 → D2 → (애매하면) D3
+    단계별 방어: D1 → D2 → (애매하면) D3, D3가 느리면 D2로 폴백
     반환: (차단 여부, 공격 점수, 처리 시간(초), 어느 단계에서 결정됐는지)
+      stage 값: "D1" / "D2" / "D3" / "D2-timeout"(D3 3초 초과로 폴백)
     """
     start = time.perf_counter()
 
@@ -32,10 +41,18 @@ def detect(text):
         elapsed = time.perf_counter() - start
         return False, d2_score, elapsed, "D2"
 
-    # 3단계: D2가 애매하면(0.3~0.7) D3 호출
-    d3_blocked, d3_score, _ = d3_llm.detect(text)
-    elapsed = time.perf_counter() - start
-    return d3_blocked, d3_score, elapsed, "D3"
+    # 3단계: D2가 애매하면(0.3~0.7) D3 호출. 단 3초 넘으면 D2 점수로 폴백
+    future = _executor.submit(d3_llm.detect, text)
+    try:
+        d3_blocked, d3_score, _ = future.result(timeout=D3_TIMEOUT)
+        elapsed = time.perf_counter() - start
+        return d3_blocked, d3_score, elapsed, "D3"
+    except FutureTimeoutError:
+        # D3가 제한 시간 안에 안 끝남 → D2 점수로 결정 (서비스 지연 방지)
+        # 버려진 D3 호출은 백그라운드 스레드에서 끝나며 결과는 폐기됨
+        elapsed = time.perf_counter() - start
+        blocked = d2_score >= FALLBACK_THRESHOLD
+        return blocked, d2_score, elapsed, "D2-timeout"
 
 
 if __name__ == "__main__":
