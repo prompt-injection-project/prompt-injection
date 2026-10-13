@@ -8,8 +8,8 @@ from openai import OpenAI
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 탐지용 LLM (대상 LLM과 같은 소형 모델 사용)
-MODEL = "gpt-4o-mini"
+# 탐지용 LLM (대상 LLM과 같은 소형 모델 사용, 버전 고정 — 재현성)
+MODEL = "gpt-4o-mini-2024-07-18"
 
 # 탐지용 판정 프롬프트 (C 담당, 원본은 defenses/prompts/)
 # 입력 언어와 관계없이 영어 프롬프트 하나로 고정 → 언어별 비교 조건 통일

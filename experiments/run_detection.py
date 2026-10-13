@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import time
 
@@ -51,6 +52,7 @@ def run():
             })
 
     out = pd.DataFrame(rows)
+    os.makedirs("results", exist_ok=True)   # .gitignore라 clone 시 폴더 없음 → 저장 전 생성
     out.to_csv("results/detection_results.csv", index=False, encoding="utf-8-sig")
     print(f"결과 저장: results/detection_results.csv ({len(out)}행)")
 
