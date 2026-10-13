@@ -22,7 +22,8 @@ def detect(text):
     반환: (차단 여부, 공격 점수, 처리 시간(초))
     """
     start = time.perf_counter()
-    result = _clf(text)[0]        # 예: {'label': 'LABEL_1', 'score': 0.99}
+    # Prompt Guard 2는 최대 512토큰 → 긴 공격(한국어는 토큰 많음)에서 오류 방지 위해 truncation
+    result = _clf(text, truncation=True, max_length=512)[0]   # 예: {'label': 'LABEL_1', 'score': 0.99}
 
     # LABEL_1 = 공격으로 가정 (모델 카드 확인 후 확정)
     if result["label"] == "LABEL_1":

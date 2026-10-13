@@ -102,7 +102,9 @@ def load_attacks(split):
 
 
 def summarize(out):
-    print("\n=== 방어별 공격 성공률(ASR) ===")
+    langs = ["en", "ko", "mixed"]
+
+    print("\n=== 방어별 종합: 공격성공률(ASR) / 차단율 / 평균지연 ===")
     total = out[out["defense"] == "D0"].shape[0]
     print(f"(공격 {total}건 기준)")
     for dname in DEFENSES:
@@ -111,10 +113,24 @@ def summarize(out):
             continue
         asr = sub["success"].mean() * 100
         blocked = sub["blocked"].mean() * 100
-        print(f"{dname}: 공격성공 {asr:5.1f}%   (방어차단 {blocked:5.1f}%)")
+        latency = sub["def_latency_ms"].mean()
+        print(f"{dname}: 공격성공 {asr:5.1f}%   차단율 {blocked:5.1f}%   방어지연 {latency:7.1f}ms")
 
-    print("\n=== 방어 × 언어별 공격 성공률 (핵심: RQ2) ===")
-    langs = ["en", "ko", "mixed"]
+    print("\n=== 방어 × 언어별 차단율 (핵심: RQ2) ===")
+    header = "방어 | " + " | ".join(f"{l:>6}" for l in langs)
+    print(header)
+    print("-" * len(header))
+    for dname in DEFENSES:
+        sub = out[out["defense"] == dname]
+        if not len(sub):
+            continue
+        cells = []
+        for l in langs:
+            s = sub[sub["language"] == l]
+            cells.append(f"{s['blocked'].mean()*100:5.1f}%" if len(s) else "   - ")
+        print(f"{dname:>3} | " + " | ".join(cells))
+
+    print("\n=== 방어 × 언어별 공격 성공률(ASR) ===")
     header = "방어 | " + " | ".join(f"{l:>6}" for l in langs)
     print(header)
     print("-" * len(header))
@@ -127,6 +143,27 @@ def summarize(out):
             s = sub[sub["language"] == l]
             cells.append(f"{s['success'].mean()*100:5.1f}%" if len(s) else "   - ")
         print(f"{dname:>3} | " + " | ".join(cells))
+
+    print("\n=== 방어 × 언어별 평균 지연(ms) ===")
+    header = "방어 | " + " | ".join(f"{l:>7}" for l in langs)
+    print(header)
+    print("-" * len(header))
+    for dname in DEFENSES:
+        sub = out[out["defense"] == dname]
+        if not len(sub):
+            continue
+        cells = []
+        for l in langs:
+            s = sub[sub["language"] == l]
+            cells.append(f"{s['def_latency_ms'].mean():7.1f}" if len(s) else "   -   ")
+        print(f"{dname:>3} | " + " | ".join(cells))
+
+    # D4 결정 단계 분포 (어느 방어에서 차단/통과가 결정됐는지)
+    d4 = out[out["defense"] == "D4"]
+    if len(d4):
+        dist = d4["stage"].value_counts().to_dict()
+        print("\n=== D4 결정 단계 분포 ===")
+        print("  " + ", ".join(f"{k}: {v}건" for k, v in dist.items()))
 
     print("\n=== 방어 × 목표별 공격 성공률 ===")
     goals = sorted(g for g in out["goal"].dropna().unique())
