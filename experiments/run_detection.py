@@ -28,7 +28,7 @@ def run():
     print(f"평가 데이터 {len(df)}건 로드")
 
     rows = []
-    for _, row in df.iterrows():
+    for i, (_, row) in enumerate(df.iterrows(), 1):
         text = row["text"]
         true_label = row["label"]   # attack / normal
 
@@ -50,6 +50,9 @@ def run():
                 "score": score,
                 "latency_ms": elapsed * 1000,
             })
+
+        if i % 20 == 0:
+            print(f"  ...{i}/{len(df)} 건 처리 (D3·D4가 매 건 API 호출이라 느림)")
 
     out = pd.DataFrame(rows)
     os.makedirs("results", exist_ok=True)   # .gitignore라 clone 시 폴더 없음 → 저장 전 생성
